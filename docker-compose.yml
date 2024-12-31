@@ -1,0 +1,58 @@
+networks:
+  isolation-network:
+    name: isolation-network
+    driver: bridge
+  redisnet:
+
+services:
+  back-dev:
+    tty: true
+
+    build:
+      context: .
+      dockerfile: back/Dockerfile
+    
+    volumes:
+      - .:/opt/back
+    
+    ports:
+      - "5000:5000"
+
+    networks:
+      - isolation-network
+
+    env_file:
+      - .env
+
+    depends_on:
+      - db
+    
+    command: python -m uvicorn back.main:app --host 0.0.0.0 --port 5000 --reload
+  
+  db:
+    image: postgres:13.2
+
+    volumes:
+      - ./data:/var/lib/postgresql/data/
+
+    expose:
+      - "5432"
+    
+    networks:
+      - isolation-network
+
+    environment:
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    
+  adminer:
+    image: adminer
+
+    networks:
+      - isolation-network
+
+    ports:
+      - 5080:8080
+    depends_on: 
+      - db
